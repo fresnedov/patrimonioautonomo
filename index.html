@@ -83,6 +83,37 @@
       .chart-card canvas{height:320px!important;}
       table{font-size:13px;}
       .big{font-size:clamp(20px,7vw,28px);}
+      thead{display:none;}
+      table, tbody, tr, td{display:block;width:100%;}
+      tbody tr{
+        border:1px solid #eee8dc;
+        border-radius:16px;
+        padding:10px 12px;
+        margin-bottom:10px;
+        background:#fff;
+      }
+      tbody td{
+        border-bottom:none;
+        padding:8px 0;
+        display:grid;
+        grid-template-columns:minmax(120px, 44%) 1fr;
+        gap:10px;
+        align-items:start;
+        text-align:left !important;
+        white-space:normal;
+      }
+      tbody td::before{
+        content:attr(data-label);
+        color:var(--muted);
+        font-size:11px;
+        letter-spacing:.06em;
+        text-transform:uppercase;
+        font-weight:600;
+      }
+      .num{
+        text-align:left !important;
+        white-space:normal;
+      }
     }
   </style>
 </head>
@@ -578,7 +609,7 @@
       ...a,
       projectedRent:
         a.name === 'Avenida Chile 1' ? 4600000 :
-        a.name === 'Calle 61' ? 800000 :
+        a.name === 'Calle 61' ? 1500000 :
         (a.cadastral > 0 ? a.cadastral * monthlyYield : 0)
     }));
     const projectedVacancyRent = projectedVacancyAssets.reduce((s,a) => s + a.projectedRent, 0);
@@ -715,27 +746,27 @@
 
     document.getElementById('assetRows').innerHTML = realEstateAssets.map(a => `
       <tr>
-        <td>${a.name}</td>
-        <td class="num">${num(a.participation)}</td>
-        <td class="num">${a.cadastral > 0 ? money1(a.cadastral) : 'Sin valor independiente'}</td>
-        <td class="num">${a.rent > 0 ? money0(a.rent) : '—'}</td>
-        <td><span class="pill ${a.rent === 0 ? 'vacant' : ''} ${a.status === 'Variable' ? 'variable' : ''}">${a.status}</span></td>
+        <td data-label="Activo">${a.name}</td>
+        <td data-label="Participación" class="num">${num(a.participation)}</td>
+        <td data-label="Valor catastral" class="num">${a.cadastral > 0 ? money1(a.cadastral) : 'Sin valor independiente'}</td>
+        <td data-label="Aporte mensual" class="num">${a.rent > 0 ? money0(a.rent) : '—'}</td>
+        <td data-label="Estado"><span class="pill ${(a.rent === 0 && a.status !== 'Arrendado') ? 'vacant' : ''} ${a.status === 'Variable' ? 'variable' : ''}">${a.status}</span></td>
       </tr>
     `).join('');
 
     document.getElementById('investmentsRows').innerHTML = investmentsAssets.map(a => `
       <tr>
-        <td>${a.name}</td>
-        <td class="num">${money0(a.value)}</td>
+        <td data-label="Activo">${a.name}</td>
+        <td data-label="Valor" class="num">${money0(a.value)}</td>
       </tr>
     `).join('');
 
     document.getElementById('vacancyRows').innerHTML = projectedVacancyAssets.map(a => `
       <tr>
-        <td>${a.name}</td>
-        <td class="num">${a.cadastral > 0 ? money1(a.cadastral) : 'Sin valor independiente'}</td>
-        <td><span class="pill vacant ${a.status === 'Variable' ? 'variable' : ''}">${a.status}</span></td>
-        <td class="num">${a.projectedRent > 0 ? money0(a.projectedRent) : '—'}</td>
+        <td data-label="Activo">${a.name}</td>
+        <td data-label="Valor catastral" class="num">${a.cadastral > 0 ? money1(a.cadastral) : 'Sin valor independiente'}</td>
+        <td data-label="Estado"><span class="pill vacant ${a.status === 'Variable' ? 'variable' : ''}">${a.status}</span></td>
+        <td data-label="Aporte mensual proyectado" class="num">${a.projectedRent > 0 ? money0(a.projectedRent) : '—'}</td>
       </tr>
     `).join('');
 
