@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patrimonio autónomo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#f6f4ef;
+      --card:#ffffff;
+      --ink:#20211f;
+      --muted:#61655f;
+      --line:#d9d4ca;
+      --accent:#688977;
+      --accent-2:#9fb5a7;
+      --accent-3:#d7e3db;
+      --vacant:#B75C09;
+      --vacant-2:#D98D49;
+      --vacant-3:#E8B07B;
+      --vacant-4:#F1D2B4;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);}
+    .wrap{max-width:1460px;margin:0 auto;padding:28px 22px 56px;}
+    header{display:grid;gap:10px;margin-bottom:28px;}
+    h1{font-size:clamp(30px,4vw,50px);line-height:1;margin:0;letter-spacing:-0.03em;}
+    .sub{max-width:980px;color:var(--muted);font-size:15px;line-height:1.6;}
+    .grid{display:grid;gap:18px;}
+    .kpis{grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:18px;}
+    .subkpis{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:18px;}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.04);}
+    .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+    .big{font-size:clamp(18px,1.15vw,23px);font-weight:700;line-height:1.05;letter-spacing:-0.03em;word-break:break-word;overflow-wrap:anywhere;}
+    .small{color:var(--muted);font-size:14px;line-height:1.5;margin-top:8px;}
+    .two{grid-template-columns:1fr 1fr;margin-bottom:18px;}
+    .three{grid-template-columns:1.2fr 1fr 1fr;margin-bottom:18px;}
+    .vacancy-layout{grid-template-columns:1fr 1.1fr;margin-bottom:18px;}
+    .chart-card canvas{width:100%!important;height:420px!important;}
+    #vacancyChart{display:block!important;width:min(100%,620px)!important;height:auto!important;aspect-ratio:1/1!important;margin:0 auto;}
+    .section-title{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:14px;}
+    .section-title h2{margin:0;font-size:26px;letter-spacing:-0.02em;}
+    .section-title p{margin:0;color:var(--muted);font-size:14px;max-width:780px;}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    thead th{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:14px 10px;border-bottom:1px solid var(--line);text-align:left;position:sticky;top:0;background:var(--card);}
+    tbody td{padding:14px 10px;border-bottom:1px solid #eee8dc;vertical-align:top;}
+    tbody tr:hover{background:#faf8f2}
+    .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:var(--accent-3);color:#355143;font-size:12px;font-weight:600;}
+    .pill.zero{background:#f0ece2;color:#6f7069;}
+    .pill.variable{background:#efe9dd;color:#6a5e45;}
+    .pill.vacant{background:#f6e1cf;color:var(--vacant);}
+    .note{margin-top:16px;padding:16px 18px;border-radius:18px;background:#f3f1ea;border:1px dashed var(--line);color:#575b56;font-size:14px;line-height:1.55;}
+    .note.vacant{background:#fcf4ed;border-color:#e8c3a3;color:#7a4517;}
+    .stack{display:grid;gap:18px;margin-bottom:18px;}
+    .mini-list{display:grid;gap:10px;margin-top:12px;}
+    .mini-item{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:10px 0;border-bottom:1px solid #efe8dd;}
+    .mini-item:last-child{border-bottom:none;padding-bottom:0;}
+    .mini-item span{color:var(--muted);}
+    .mini-item strong{font-size:14px;text-align:right;}
+    .vacancy-accent h2{color:var(--vacant);}
+
+    .scenario-grid{grid-template-columns:1fr 1fr;margin-bottom:18px;}
+    .scenario-card{border:1px solid var(--line);}
+    .scenario-card h3{margin:0 0 14px;font-size:22px;letter-spacing:-0.02em;}
+    .scenario-card.current h3{color:var(--accent);}
+    .scenario-card.potential h3{color:var(--vacant);}
+    .scenario-kpis{display:grid;gap:12px;}
+    .scenario-item{display:flex;justify-content:space-between;gap:18px;padding:10px 0;border-bottom:1px solid #efe8dd;}
+    .scenario-item:last-child{border-bottom:none;padding-bottom:0;}
+    .scenario-item span{color:var(--muted);}
+    .scenario-item strong{text-align:right;font-size:14px;}
+    .delta-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px;}
+    .delta-card{border-style:solid;}
+    .chart-wide canvas{width:100%!important;height:360px!important;}
+    @media (max-width:1180px){
+      .kpis,.three,.two,.subkpis,.vacancy-layout,.scenario-grid,.delta-grid{grid-template-columns:1fr 1fr;}
+    }
+    @media (max-width:760px){
+      .kpis,.three,.two,.subkpis,.vacancy-layout,.scenario-grid,.delta-grid{grid-template-columns:1fr;}
+      .wrap{padding:18px 14px 40px;}
+      .card{padding:18px;}
+      .chart-card canvas{height:320px!important;}
+      table{font-size:13px;}
+      .big{font-size:clamp(20px,7vw,28px);}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Patrimonio autónomo</h1>
+	</header>
+
+    <section class="grid kpis">
+      <div class="card">
+        <div class="eyebrow">Patrimonio total</div>
+        <div class="big" id="totalPatrimony"></div>
+
+      </div>
+      <div class="card">
+        <div class="eyebrow">Activos inmobiliarios</div>
+        <div class="big" id="totalValue"></div>
+
+      </div>
+      <div class="card">
+        <div class="eyebrow">Inversiones</div>
+        <div class="big" id="totalInversiones"></div>
+
+      </div>
+      <div class="card">
+        <div class="eyebrow">Arriendos mensuales</div>
+        <div class="big" id="totalRent"></div>
+
+      </div>
+      <div class="card">
+        <div class="eyebrow">Activos con renta</div>
+        <div class="big" id="rentedCount"></div>
+
+      </div>
+    </section>
+
+    <section class="grid three">
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <h2>Composición general del patrimonio</h2>
+
+          </div>
+        </div>
+        <div class="mini-list" id="compositionList"></div>
+      </div>
+      <div class="card chart-card">
+        <div class="section-title">
+          <div>
+            <h2>Distribución por valor</h2>
+
+          </div>
+        </div>
+        <canvas id="valueChart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <div class="section-title">
+          <div>
+            <h2>Bloque de inversiones</h2>
+
+          </div>
+        </div>
+        <canvas id="liquidityChart"></canvas>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <div class="card chart-card">
+        <div class="section-title">
+          <div>
+            <h2>Distribución por aporte mensual</h2>
+
+          </div>
+        </div>
+        <canvas id="rentChart"></canvas>
+      </div>
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <h2>Resumen</h2>
+
+          </div>
+        </div>
+        <div class="mini-list" id="summaryList"></div>
+
+      </div>
+    </section>
+
+    <section class="stack">
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <h2>Listado de activos inmobiliarios</h2>
+
+          </div>
+        </div>
+        <div style="overflow:auto; max-height:900px; border-radius:18px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Activo</th>
+                <th class="num">Participación</th>
+                <th class="num">Valor catastral</th>
+                <th class="num">Aporte mensual</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="assetRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <h2>Bloque de inversiones</h2>
+
+          </div>
+        </div>
+        <div style="overflow:auto; border-radius:18px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Activo</th>
+                <th class="num">Valor</th>
+              </tr>
+            </thead>
+            <tbody id="investmentsRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="stack">
+      <div class="card vacancy-accent">
+        <div class="section-title">
+          <div>
+            <h2>Activos sin aporte mensual</h2>
+
+          </div>
+        </div>
+        <section class="grid subkpis">
+          <div class="card" style="border-color:#e8c3a3; box-shadow:none;">
+            <div class="eyebrow" style="color:var(--vacant);">Valor de estos activos</div>
+            <div class="big" id="vacantTotalValue"></div>
+
+          </div>
+          <div class="card" style="border-color:#e8c3a3; box-shadow:none;">
+            <div class="eyebrow" style="color:var(--vacant);">Arriendo potencial mensual</div>
+            <div class="big" id="vacantProjectedRent"></div>
+
+          </div>
+          <div class="card" style="border-color:#e8c3a3; box-shadow:none;">
+            <div class="eyebrow" style="color:var(--vacant);">Número de activos</div>
+            <div class="big" id="vacantCount"></div>
+
+          </div>
+        </section>
+      </div>
+
+      <section class="grid vacancy-layout">
+        <div class="card chart-card">
+          <div class="section-title">
+            <div>
+              <h2 style="color:var(--vacant);">Aportes esperados de activos sin arrendar&nbsp;</h2>
+
+            </div>
+          </div>
+          <canvas id="vacancyChart"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="section-title">
+            <div>
+              <h2 style="color:var(--vacant);">Activos sin aporte mensual</h2>
+
+            </div>
+          </div>
+          <div style="overflow:auto; border-radius:18px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Activo</th>
+                  <th class="num">Valor catastral</th>
+                  <th>Estado</th>
+                  <th class="num">Aporte mensual proyectado</th>
+                </tr>
+              </thead>
+              <tbody id="vacancyRows"></tbody>
+            </table>
+          </div>
+          <div class="note vacant" id="projectionNote"></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="stack">
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <h2>Escenario operativo anual</h2>
+          </div>
+        </div>
+        <section class="grid delta-grid">
+          <div class="card delta-card" style="box-shadow:none;">
+            <div class="eyebrow">Ingreso anual actual</div>
+            <div class="big" id="currentAnnualIncome"></div>
+          </div>
+          <div class="card delta-card" style="box-shadow:none;">
+            <div class="eyebrow">Ingreso anual proyectado</div>
+            <div class="big" id="potentialAnnualIncome"></div>
+          </div>
+          <div class="card delta-card" style="box-shadow:none; border-color:#e8c3a3;">
+            <div class="eyebrow" style="color:var(--vacant);">Ingreso adicional anual</div>
+            <div class="big" id="deltaAnnualIncome"></div>
+          </div>
+          <div class="card delta-card" style="box-shadow:none; border-color:#e8c3a3;">
+            <div class="eyebrow" style="color:var(--vacant);">Flujo neto adicional anual</div>
+            <div class="big" id="deltaAnnualNet"></div>
+          </div>
+        </section>
+        <section class="grid subkpis" style="margin-top:18px;">
+          <div class="card delta-card" style="box-shadow:none; border-color:var(--accent-2);">
+            <div class="eyebrow">Flujo neto mensual actual</div>
+            <div class="big" id="currentMonthlyNet"></div>
+          </div>
+          <div class="card delta-card" style="box-shadow:none; border-color:#e8c3a3;">
+            <div class="eyebrow" style="color:var(--vacant);">Flujo neto mensual proyectado</div>
+            <div class="big" id="potentialMonthlyNet"></div>
+          </div>
+          <div class="card delta-card" style="box-shadow:none; border-color:#e8c3a3; background:#fcf4ed;">
+            <div class="eyebrow" style="color:var(--vacant);">Diferencia mensual estimada</div>
+            <div class="big" id="deltaMonthlyNet"></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="grid scenario-grid">
+        <div class="card scenario-card current">
+          <h3>Escenario actual</h3>
+          <div class="scenario-kpis" id="currentScenarioList"></div>
+        </div>
+        <div class="card scenario-card potential">
+          <h3>Escenario si se arrendara todo</h3>
+          <div class="scenario-kpis" id="potentialScenarioList"></div>
+        </div>
+      </section>
+
+      <div class="card chart-card chart-wide">
+        <div class="section-title">
+          <div>
+            <h2>Comparativo anual</h2>
+          </div>
+        </div>
+        <canvas id="scenarioChart"></canvas>
+      </div>
+    </section>
+
+    <section class="stack">
+      <div class="card" style="border-color:var(--accent-2);">
+        <div class="section-title">
+          <div>
+            <h2>Participación</h2>
+          </div>
+        </div>
+        <section class="grid subkpis">
+          <div class="card delta-card" style="box-shadow:none; border-color:var(--accent-2);">
+            <div class="eyebrow">Valor&nbsp; &nbsp;participación · 6,27%</div>
+            <div class="big" id="myParticipationValue"></div>
+          </div>
+          <div class="card delta-card" style="box-shadow:none; border-color:var(--accent-2);">
+            <div class="eyebrow">Ingreso mensual actual neto · 6,27%</div>
+            <div class="big" id="myMonthlyNet"></div>
+          </div>
+          <div class="card delta-card" style="box-shadow:none; border-color:#e8c3a3; background:#fcf4ed;">
+            <div class="eyebrow" style="color:var(--vacant);">Ingreso mensual neto si se arrendara todo · 6,27%</div>
+            <div class="big" id="myPotentialMonthlyNet"></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    const realEstateAssets = [
+    {
+        "name": "Metrópolis",
+        "participation": 1,
+        "cadastral": 528156000,
+        "rent": 0,
+        "status": "No arrendado"
+    },
+    {
+        "name": "Calle 64",
+        "participation": 0.66666,
+        "cadastral": 1178431548.9,
+        "rent": 4415783.81376,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 88",
+        "participation": 1,
+        "cadastral": 1196191000,
+        "rent": 0,
+        "status": "No arrendado"
+    },
+    {
+        "name": "Calle 81 Pinar",
+        "participation": 1,
+        "cadastral": 787042000,
+        "rent": 3050800,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 81 Pinar (Parqueadero)",
+        "participation": 1,
+        "cadastral": 0,
+        "rent": 0,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Avenida Chile 1",
+        "participation": 1,
+        "cadastral": 1043225000,
+        "rent": 0,
+        "status": "No arrendado"
+    },
+    {
+        "name": "Avenida Chile 2",
+        "participation": 1,
+        "cadastral": 1139952000,
+        "rent": 6981671,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Unicentro",
+        "participation": 1,
+        "cadastral": 2848397000,
+        "rent": 22000000,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Andino",
+        "participation": 1,
+        "cadastral": 5859554000,
+        "rent": 67076752,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Suite Santa Teresa (Cartagena)",
+        "participation": 1,
+        "cadastral": 432738000,
+        "rent": 4946034.375833,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Suite Teleport",
+        "participation": 1,
+        "cadastral": 271838000,
+        "rent": 1732203.583333,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 119",
+        "participation": 1,
+        "cadastral": 3492265000,
+        "rent": 14492931,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 61",
+        "participation": 1,
+        "cadastral": 304712000,
+        "rent": 0,
+        "status": "No arrendado"
+    },
+    {
+        "name": "Bulevar Niza",
+        "participation": 0.5,
+        "cadastral": 791018000,
+        "rent": 4000000,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 61 local 201",
+        "participation": 1,
+        "cadastral": 124748000,
+        "rent": 0,
+        "status": "No arrendado"
+    },
+    {
+        "name": "Suite Calle 85",
+        "participation": 1,
+        "cadastral": 195382000,
+        "rent": 0,
+        "status": "Variable"
+    },
+    {
+        "name": "Calle 82",
+        "participation": 1,
+        "cadastral": 1877521000,
+        "rent": 4500000,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Hacienda Santa Bárbara",
+        "participation": 1,
+        "cadastral": 505018000,
+        "rent": 7000000,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 62 Local 119",
+        "participation": 1,
+        "cadastral": 18118000,
+        "rent": 450000,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 62 Local 120",
+        "participation": 1,
+        "cadastral": 17393000,
+        "rent": 450000,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Calle 61 A",
+        "participation": 0.65,
+        "cadastral": 1165728000,
+        "rent": 4773369,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Suite calle 80",
+        "participation": 0.5,
+        "cadastral": 125822000,
+        "rent": 0,
+        "status": "No arrendado"
+    },
+    {
+        "name": "Suite Barranquilla",
+        "participation": 0.5,
+        "cadastral": 0,
+        "rent": 0,
+        "status": "Sin rentabilidad"
+    },
+    {
+        "name": "Calle 61 local 109",
+        "participation": 1,
+        "cadastral": 154503000,
+        "rent": 993297,
+        "status": "Arrendado"
+    },
+    {
+        "name": "Derechos fiduciarios Avenida Chile",
+        "participation": 1,
+        "cadastral": 415496059,
+        "rent": 1800000,
+        "status": "Arrendado"
+    }
+];
+    const investmentsAssets = [
+    {
+        "name": "Fondo Credicop",
+        "value": 548085680
+    },
+    {
+        "name": "Credicop caja",
+        "value": 49645196
+    },
+    {
+        "name": "Acciones en Grupo Aval / Bac Holding",
+        "value": 3010968
+    }
+];
+
+    const money0 = v => new Intl.NumberFormat('es-CO', {style:'currency', currency:'COP', maximumFractionDigits:0}).format(v);
+    const money1 = v => new Intl.NumberFormat('es-CO', {style:'currency', currency:'COP', minimumFractionDigits:1, maximumFractionDigits:1}).format(v);
+    const num = v => new Intl.NumberFormat('es-CO', {minimumFractionDigits:0, maximumFractionDigits:4}).format(v);
+    const pct = v => new Intl.NumberFormat('es-CO', {style:'percent', minimumFractionDigits:1, maximumFractionDigits:1}).format(v);
+
+    const totalValue = realEstateAssets.reduce((s,a) => s + a.cadastral, 0);
+    const totalRent = realEstateAssets.reduce((s,a) => s + a.rent, 0);
+    const totalInversiones = investmentsAssets.reduce((s,a) => s + a.value, 0);
+    const totalPatrimony = totalValue + totalInversiones;
+    const rentedCount = realEstateAssets.filter(a => a.rent > 0).length;
+    const rentedWithValue = realEstateAssets.filter(a => a.rent > 0 && a.cadastral > 0);
+    const monthlyYield = rentedWithValue.reduce((s,a) => s + a.rent, 0) / rentedWithValue.reduce((s,a) => s + a.cadastral, 0);
+    const vacancyAssets = realEstateAssets.filter(a => a.rent === 0 && a.status !== 'Arrendado');
+    const projectedVacancyAssets = vacancyAssets.map(a => ({
+      ...a,
+      projectedRent:
+        a.name === 'Avenida Chile 1' ? 4600000 :
+        a.name === 'Calle 61' ? 800000 :
+        (a.cadastral > 0 ? a.cadastral * monthlyYield : 0)
+    }));
+    const projectedVacancyRent = projectedVacancyAssets.reduce((s,a) => s + a.projectedRent, 0);
+    const vacancyValue = vacancyAssets.reduce((s,a) => s + a.cadastral, 0);
+    const biggestVacantAsset = vacancyAssets
+      .filter(a => a.cadastral > 0)
+      .slice()
+      .sort((a,b) => b.cadastral - a.cadastral)[0];
+    const highestMissedRentAsset = projectedVacancyAssets
+      .filter(a => a.projectedRent > 0)
+      .slice()
+      .sort((a,b) => b.projectedRent - a.projectedRent)[0];
+    const vacancyPatrimonyShare = totalPatrimony > 0 ? vacancyValue / totalPatrimony : 0;
+
+    const ADMIN_RATE = 0.12;
+    const PREDIAL_RATE = 0.008;
+    const RENTA_RATE = 0.35;
+
+    const currentAnnualIncome = totalRent * 12;
+    const potentialAnnualIncome = (totalRent + projectedVacancyRent) * 12;
+    const annualPredial = totalValue * PREDIAL_RATE;
+
+    const scenarioFromIncome = (annualIncome) => {
+      const adminCost = annualIncome * ADMIN_RATE;
+      const taxableBase = Math.max(annualIncome - adminCost - annualPredial, 0);
+      const rentaTax = taxableBase * RENTA_RATE;
+      const netFlow = annualIncome - adminCost - annualPredial - rentaTax;
+      return { annualIncome, adminCost, predial: annualPredial, taxableBase, rentaTax, netFlow, monthlyNetFlow: netFlow / 12 };
+    };
+
+    const currentScenario = scenarioFromIncome(currentAnnualIncome);
+    const potentialScenario = scenarioFromIncome(potentialAnnualIncome);
+    const MY_SHARE = 0.0627;
+    const myParticipationValue = totalPatrimony * MY_SHARE;
+    const myMonthlyNet = currentScenario.monthlyNetFlow * MY_SHARE;
+    const myPotentialMonthlyNet = potentialScenario.monthlyNetFlow * MY_SHARE;
+
+    document.getElementById('totalPatrimony').textContent = money1(totalPatrimony);
+    document.getElementById('totalValue').textContent = money1(totalValue);
+    document.getElementById('totalInversiones').textContent = money0(totalInversiones);
+    document.getElementById('totalRent').textContent = money0(totalRent);
+    document.getElementById('rentedCount').textContent = rentedCount + ' / ' + realEstateAssets.length;
+
+    document.getElementById('vacantTotalValue').textContent = money0(vacancyValue);
+    document.getElementById('vacantProjectedRent').textContent = money0(projectedVacancyRent);
+    document.getElementById('vacantCount').textContent = vacancyAssets.length;
+
+
+    document.getElementById('currentAnnualIncome').textContent = money0(currentScenario.annualIncome);
+    document.getElementById('potentialAnnualIncome').textContent = money0(potentialScenario.annualIncome);
+    document.getElementById('deltaAnnualIncome').textContent = money0(potentialScenario.annualIncome - currentScenario.annualIncome);
+    document.getElementById('deltaAnnualNet').textContent = money0(potentialScenario.netFlow - currentScenario.netFlow);
+    document.getElementById('currentMonthlyNet').textContent = money0(currentScenario.monthlyNetFlow);
+    document.getElementById('potentialMonthlyNet').textContent = money0(potentialScenario.monthlyNetFlow);
+    document.getElementById('deltaMonthlyNet').textContent = money0(potentialScenario.monthlyNetFlow - currentScenario.monthlyNetFlow);
+    document.getElementById('myParticipationValue').textContent = money0(myParticipationValue);
+    document.getElementById('myMonthlyNet').textContent = money0(myMonthlyNet);
+    document.getElementById('myPotentialMonthlyNet').textContent = money0(myPotentialMonthlyNet);
+
+    const renderScenarioList = (elId, data) => {
+      document.getElementById(elId).innerHTML = data.map(item => `
+        <div class="scenario-item">
+          <span>${item.label}</span>
+          <strong>${item.value}</strong>
+        </div>
+      `).join('');
+    };
+
+    renderScenarioList('currentScenarioList', [
+      {label:'Ingreso bruto anual', value:money0(currentScenario.annualIncome)},
+      {label:'Administración y operación', value:money0(currentScenario.adminCost)},
+      {label:'Predial anual estimado', value:money0(currentScenario.predial)},
+      {label:'Base estimada para renta', value:money0(currentScenario.taxableBase)},
+      {label:'Renta anual estimada', value:money0(currentScenario.rentaTax)},
+      {label:'Flujo neto anual', value:money0(currentScenario.netFlow)},
+      {label:'Flujo neto mensual', value:money0(currentScenario.monthlyNetFlow)}
+    ]);
+
+    renderScenarioList('potentialScenarioList', [
+      {label:'Ingreso bruto anual', value:money0(potentialScenario.annualIncome)},
+      {label:'Administración y operación', value:money0(potentialScenario.adminCost)},
+      {label:'Predial anual estimado', value:money0(potentialScenario.predial)},
+      {label:'Base estimada para renta', value:money0(potentialScenario.taxableBase)},
+      {label:'Renta anual estimada', value:money0(potentialScenario.rentaTax)},
+      {label:'Flujo neto anual', value:money0(potentialScenario.netFlow)},
+      {label:'Flujo neto mensual', value:money0(potentialScenario.monthlyNetFlow)}
+    ]);
+
+    const compositionData = [
+      {label:'Activos inmobiliarios', value:totalValue},
+      {label:'Inversiones', value:totalInversiones}
+    ];
+    document.getElementById('compositionList').innerHTML = compositionData.map(item => `
+      <div class="mini-item">
+        <span>${item.label}</span>
+        <strong>${money1(item.value)} · ${pct(item.value / totalPatrimony)}</strong>
+      </div>
+    `).join('');
+
+    const biggestAsset = realEstateAssets.slice().sort((a,b) => b.cadastral - a.cadastral)[0];
+    const highestRent = realEstateAssets.slice().sort((a,b) => b.rent - a.rent)[0];
+    const summaryData = [
+      {label:'Inmueble de mayor valor', value:`${biggestAsset.name} · ${money1(biggestAsset.cadastral)}`},
+      {label:'Mayor aporte mensual', value:`${highestRent.name} · ${money0(highestRent.rent)}`},
+      {label:'Inmueble de mayor valor sin arrendar', value: biggestVacantAsset ? `${biggestVacantAsset.name} · ${money1(biggestVacantAsset.cadastral)}` : '—'},
+      {label:'Mayor aporte mensual sin recibir', value: highestMissedRentAsset ? `${highestMissedRentAsset.name} · ${money0(highestMissedRentAsset.projectedRent)}` : '—'},
+      {label:'Porcentaje de inmuebles sin arrendar por patrimonio', value:pct(vacancyPatrimonyShare)},
+      {label:'Inversiones disponible', value:money0(totalInversiones)},
+      {label:'Peso de la inversiones en el patrimonio', value:pct(totalInversiones / totalPatrimony)},
+      {label:'Peso del flujo mensual sobre el patrimonio', value:pct(totalRent / totalPatrimony)},
+      {label:'Potencial mensual estimado en activos sin aporte', value:money0(projectedVacancyRent)}
+    ];
+    document.getElementById('summaryList').innerHTML = summaryData.map(item => {
+      const isNegative =
+        item.label.includes('sin arrendar') ||
+        item.label.includes('sin recibir') ||
+        item.label.includes('Porcentaje de inmuebles sin arrendar') ||
+        item.label.includes('Potencial mensual');
+
+      const isPositive =
+        item.label.includes('Inmueble de mayor valor') ||
+        item.label.includes('Mayor aporte mensual') ||
+        item.label.includes('Inversiones disponible');
+
+      return `
+      <div class="mini-item">
+        <span>${item.label}</span>
+        <strong style="color:${
+          isNegative ? '#B75C09' : (isPositive ? '#688977' : 'inherit')
+        }">${item.value}</strong>
+      </div>
+      `;
+    }).join('');
+
+    document.getElementById('assetRows').innerHTML = realEstateAssets.map(a => `
+      <tr>
+        <td>${a.name}</td>
+        <td class="num">${num(a.participation)}</td>
+        <td class="num">${a.cadastral > 0 ? money1(a.cadastral) : 'Sin valor independiente'}</td>
+        <td class="num">${a.rent > 0 ? money0(a.rent) : '—'}</td>
+        <td><span class="pill ${a.rent === 0 ? 'vacant' : ''} ${a.status === 'Variable' ? 'variable' : ''}">${a.status}</span></td>
+      </tr>
+    `).join('');
+
+    document.getElementById('investmentsRows').innerHTML = investmentsAssets.map(a => `
+      <tr>
+        <td>${a.name}</td>
+        <td class="num">${money0(a.value)}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('vacancyRows').innerHTML = projectedVacancyAssets.map(a => `
+      <tr>
+        <td>${a.name}</td>
+        <td class="num">${a.cadastral > 0 ? money1(a.cadastral) : 'Sin valor independiente'}</td>
+        <td><span class="pill vacant ${a.status === 'Variable' ? 'variable' : ''}">${a.status}</span></td>
+        <td class="num">${a.projectedRent > 0 ? money0(a.projectedRent) : '—'}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('projectionNote').remove();
+
+    const basePalette = ['#688977','#7d9989','#92aa9a','#a8bbaa','#bdd0be','#d3e0d4','#9fb5a7','#7f957f','#d7e3db','#b1c7b8','#5f7b69','#cad8cf'];
+    const investmentsPalette = ['#7b8f81','#99aa9f','#c7d1cb'];
+    const vacancyPalette = ['#B75C09','#C97525','#D98D49','#E8B07B','#F1D2B4','#E4A365','#CE7C39','#B96B19'];
+
+    const pieConfig = (labels, values, formatter, colors) => ({
+      type:'pie',
+      data:{labels, datasets:[{data:values, backgroundColor: labels.map((_,i) => colors[i % colors.length]), borderColor:'#f6f4ef', borderWidth:3}]},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom', labels:{boxWidth:12, boxHeight:12, padding:14, color:'#30322e', font:{size:12}}},
+          tooltip:{callbacks:{label:(ctx) => {
+            const total = ctx.dataset.data.reduce((s,v) => s + v, 0);
+            const value = ctx.raw || 0;
+            const share = total ? ' · ' + pct(value / total) : '';
+            return `${ctx.label}: ${formatter(value)}${share}`;
+          }}}
+        }
+      }
+    });
+
+    new Chart(document.getElementById('valueChart'), pieConfig(realEstateAssets.filter(a => a.cadastral > 0).map(a => a.name), realEstateAssets.filter(a => a.cadastral > 0).map(a => a.cadastral), money1, basePalette));
+    const rentAssets = realEstateAssets.filter(a => a.rent > 0);
+    new Chart(document.getElementById('rentChart'), pieConfig(rentAssets.map(a => a.name), rentAssets.map(a => a.rent), money0, basePalette));
+    new Chart(document.getElementById('liquidityChart'), pieConfig(investmentsAssets.map(a => a.name), investmentsAssets.map(a => a.value), money0, investmentsPalette));
+    const projectedWithValue = projectedVacancyAssets.filter(a => a.projectedRent > 0);
+    const vacancyPie = pieConfig(projectedWithValue.map(a => a.name), projectedWithValue.map(a => a.projectedRent), money0, vacancyPalette);
+    vacancyPie.options.maintainAspectRatio = true;
+    vacancyPie.options.aspectRatio = 1;
+    new Chart(document.getElementById('vacancyChart'), vacancyPie);
+
+    new Chart(document.getElementById('scenarioChart'), {
+      type:'bar',
+      data:{
+        labels:['Escenario actual', 'Si se arrendara todo'],
+        datasets:[
+          {label:'Ingreso bruto anual', data:[currentScenario.annualIncome, potentialScenario.annualIncome], backgroundColor:'#9fb5a7', borderRadius:8},
+          {label:'Predial + renta + operación', data:[currentScenario.adminCost + currentScenario.predial + currentScenario.rentaTax, potentialScenario.adminCost + potentialScenario.predial + potentialScenario.rentaTax], backgroundColor:'#D98D49', borderRadius:8},
+          {label:'Flujo neto anual', data:[currentScenario.netFlow, potentialScenario.netFlow], backgroundColor:'#688977', borderRadius:8}
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{position:'bottom', labels:{boxWidth:12, boxHeight:12, padding:14, color:'#30322e', font:{size:12}}},
+          tooltip:{callbacks:{label:(ctx)=> `${ctx.dataset.label}: ${money0(ctx.raw || 0)}`}}
+        },
+        scales:{
+          y:{ticks:{callback:(value)=> money0(value)}, grid:{color:'#ebe5d8'}},
+          x:{grid:{display:false}}
+        }
+      }
+    });
+  </script>
+</body>
+</html>
